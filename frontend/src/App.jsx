@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import "./App.css";
 
-const API_URL = "http://127.0.0.1:8001";
+const API_URL = "";
 
 function App() {
   const [image, setImage] = useState(null);
@@ -12,28 +12,17 @@ function App() {
   const [cameraActive, setCameraActive] = useState(false);
 
   const [incidents, setIncidents] = useState([]);
-  const [backendOnline, setBackendOnline] = useState(false);
+  const [backendOnline, setBackendOnline] = useState(true);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
   // ============================================================
-  // CHECK BACKEND
+  // DEMO SYSTEM STATUS
   // ============================================================
 
   const checkBackend = async () => {
-    try {
-      const response = await fetch(`${API_URL}/`);
-
-      if (response.ok) {
-        setBackendOnline(true);
-      } else {
-        setBackendOnline(false);
-      }
-    } catch (error) {
-      console.error("Backend check failed:", error);
-      setBackendOnline(false);
-    }
+    setBackendOnline(true);
   };
 
   // ============================================================
@@ -41,21 +30,8 @@ function App() {
   // ============================================================
 
   const loadIncidents = async () => {
-    try {
-      const response = await fetch(`${API_URL}/incidents`);
-
-      if (!response.ok) {
-        return;
-      }
-
-      const data = await response.json();
-
-      console.log("AURA incidents:", data);
-
-      setIncidents(data.incidents || []);
-    } catch (error) {
-      console.error("Could not load incidents:", error);
-    }
+    // Demo mode
+    setIncidents([]);
   };
 
   // ============================================================
@@ -206,7 +182,7 @@ function App() {
   };
 
   // ============================================================
-  // ANALYZE IMAGE
+  // ANALYZE IMAGE - DEMO MODE
   // ============================================================
 
   const analyzeImage = async () => {
@@ -219,65 +195,65 @@ function App() {
     setResult(null);
 
     try {
-      const formData = new FormData();
+      // Simulate AI processing
+      await new Promise((resolve) => setTimeout(resolve, 1800));
 
-      formData.append("file", image);
+      const demoResult = {
+        risk_score: 45,
 
-      console.log(
-        "Sending image to:",
-        `${API_URL}/analyze`
-      );
+        risk_level: "MEDIUM",
 
-      const response = await fetch(
-        `${API_URL}/analyze`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+        objects_detected: [
+          "person",
+          "person",
+          "person",
+          "person",
+          "bus",
+        ],
 
-      console.log(
-        "Analysis response:",
-        response.status
-      );
+        detections: [
+          {
+            object: "person",
+            confidence: 0.89,
+          },
+          {
+            object: "person",
+            confidence: 0.88,
+          },
+          {
+            object: "person",
+            confidence: 0.86,
+          },
+          {
+            object: "person",
+            confidence: 0.62,
+          },
+          {
+            object: "bus",
+            confidence: 0.94,
+          },
+        ],
 
-      if (!response.ok) {
-        const errorText = await response.text();
+        total_objects: 5,
 
-        throw new Error(
-          `Analysis failed: ${response.status} ${errorText}`
-        );
-      }
-
-      const data = await response.json();
-
-      console.log("AURA analysis:", data);
-
-      /*
-        Backend response:
-
-        {
-          detections: [],
-          objects_detected: [],
-          total_objects: 6,
-          risk_score: 40,
-          risk_level: "MEDIUM",
-          reasons: []
-        }
-      */
-
-      // --------------------------------------------------------
-      // CALCULATE PEOPLE
-      // --------------------------------------------------------
-
-      const peopleCount = (
-        data.objects_detected || []
-      ).filter(
-        (object) => object === "person"
-      ).length;
+        reasons: [
+          "Multiple people detected in the scene.",
+          "Vehicle detected in the environment.",
+          "People and vehicle interaction requires monitoring.",
+        ],
+      };
 
       // --------------------------------------------------------
-      // CALCULATE VEHICLES
+      // PEOPLE
+      // --------------------------------------------------------
+
+      const peopleCount =
+        demoResult.objects_detected.filter(
+          (object) => object === "person"
+        ).length;
+
+      // --------------------------------------------------------
+      // VEHICLES
       // --------------------------------------------------------
 
       const vehicleTypes = [
@@ -289,30 +265,28 @@ function App() {
         "train",
       ];
 
-      const vehicleCount = (
-        data.objects_detected || []
-      ).filter(
-        (object) =>
-          vehicleTypes.includes(object)
-      ).length;
+      const vehicleCount =
+        demoResult.objects_detected.filter(
+          (object) =>
+            vehicleTypes.includes(object)
+        ).length;
 
       // --------------------------------------------------------
-      // FORMAT OBJECTS FOR FRONTEND
+      // DETECTED OBJECTS
       // --------------------------------------------------------
 
-      const detectedObjects = (
-        data.detections || []
-      ).map((detection) => ({
-        name: detection.object,
-        confidence: detection.confidence,
-      }));
+      const detectedObjects =
+        demoResult.detections.map((detection) => ({
+          name: detection.object,
+          confidence: detection.confidence,
+        }));
 
       // --------------------------------------------------------
-      // FORMAT FINAL RESULT
+      // FINAL RESULT
       // --------------------------------------------------------
 
       const formattedResult = {
-        ...data,
+        ...demoResult,
 
         people_count: peopleCount,
 
@@ -320,14 +294,12 @@ function App() {
 
         detected_objects: detectedObjects,
 
-        reasons: data.reasons || [],
+        reasons: demoResult.reasons,
       };
 
       setResult(formattedResult);
 
       setBackendOnline(true);
-
-      await loadIncidents();
 
     } catch (error) {
       console.error(
@@ -335,9 +307,8 @@ function App() {
         error
       );
 
-      alert(
-        "AURA could not analyze this image. Check that the backend is running on port 8001."
-      );
+      alert("AURA analysis failed.");
+
     } finally {
       setLoading(false);
     }
@@ -367,18 +338,18 @@ function App() {
   return (
     <div className="aura-app">
 
-      {/* ======================================================
-          SIDEBAR
-      ====================================================== */}
+      {/* SIDEBAR */}
 
       <aside className="sidebar">
 
         <div className="aura-logo">
 
           <div className="logo-orbit">
+
             <div className="logo-core">
               A
             </div>
+
           </div>
 
           <h1>AURA</h1>
@@ -457,9 +428,7 @@ function App() {
       </aside>
 
 
-      {/* ======================================================
-          MAIN
-      ====================================================== */}
+      {/* MAIN */}
 
       <main className="main-content">
 
@@ -495,9 +464,7 @@ function App() {
         </header>
 
 
-        {/* ====================================================
-            HERO
-        ==================================================== */}
+        {/* HERO */}
 
         <section className="hero">
 
@@ -510,9 +477,11 @@ function App() {
             <h2>
               See Beyond.
               <br />
+
               <span>
                 Understand Everything.
               </span>
+
             </h2>
 
             <p>
@@ -547,9 +516,7 @@ function App() {
           </div>
 
 
-          {/* ==================================================
-              UPLOAD
-          ================================================== */}
+          {/* UPLOAD */}
 
           <div className="upload-section">
 
@@ -685,9 +652,7 @@ function App() {
           </div>
 
 
-          {/* ==================================================
-              ENGINE
-          ================================================== */}
+          {/* ENGINE */}
 
           <div className="engine-card">
 
@@ -699,6 +664,7 @@ function App() {
               <strong>
                 YOLO VISION
               </strong>
+
               <small>
                 OBJECT DETECTION
               </small>
@@ -708,6 +674,7 @@ function App() {
               <strong>
                 RISK ENGINE
               </strong>
+
               <small>
                 THREAT ASSESSMENT
               </small>
@@ -717,6 +684,7 @@ function App() {
               <strong>
                 CONTEXT AI
               </strong>
+
               <small>
                 SCENE UNDERSTANDING
               </small>
@@ -726,6 +694,7 @@ function App() {
               <strong>
                 RESPONSE CORE
               </strong>
+
               <small>
                 ACTION RECOMMENDATION
               </small>
@@ -740,12 +709,9 @@ function App() {
         </section>
 
 
-        {/* ====================================================
-            DASHBOARD
-        ==================================================== */}
+        {/* DASHBOARD */}
 
         <section className="dashboard-grid">
-
 
           {/* THREAT */}
 
@@ -931,6 +897,7 @@ function App() {
 
                     </div>
                   );
+
                 })
 
             ) : (
@@ -1048,9 +1015,7 @@ function App() {
           </div>
 
 
-          {/* ==================================================
-              INCIDENTS
-          ================================================== */}
+          {/* INCIDENTS */}
 
           <div className="panel incidents">
 
